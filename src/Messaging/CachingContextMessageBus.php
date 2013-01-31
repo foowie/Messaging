@@ -15,12 +15,13 @@ class CachingContextMessageBus extends ContextMessageBus {
 		parent::__construct($container, $tag);
 	}
 
-	protected function registerHandlers(\Nette\DI\Container $container, $tag) {
+	protected function prepareRegistry(\Nette\DI\Container $container, $handlerTag, $validatorTag) {
 		if (!isset($this->cache['CachingContextMessageBus'])) {
-			parent::registerHandlers($container, $tag);
-			$this->cache['CachingContextMessageBus'] = $this->keys;
+			parent::prepareRegistry($container, $handlerTag, $validatorTag);
+			$this->cache['CachingContextMessageBus'] = array($this->keys, $this->validators);
 		}
-		$this->keys = $this->cache['CachingContextMessageBus'];
+		list($this->keys, $this->validators) = $this->cache['CachingContextMessageBus'];
+		
 	}
 
 }

@@ -5,7 +5,7 @@ namespace Messaging;
 /**
  * @author Daniel Robenek <daniel.robenek@me.com>
  */
-interface ICommandValidationResult {
+interface IValidationResult {
 
 	function isValid();
 

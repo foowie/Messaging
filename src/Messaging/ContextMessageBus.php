@@ -11,11 +11,14 @@ class ContextMessageBus extends \Nette\Object implements IMessageBus {
 	private $container;
 
 	/** @var string[][] */
-	protected $keys = array();
+	protected $keys;
 
-	function __construct(\Nette\DI\Container $container, $tag = 'handler') {
+	/** @var string[][] */
+	protected $validators;
+
+	function __construct(\Nette\DI\Container $container, $handlerTag = 'handler', $validatorTag = 'validator') {
 		$this->container = $container;
-		$this->registerHandlers($container, $tag);
+		$this->prepareRegistry($container, $handlerTag, $validatorTag);
 	}
 
 	public function publish($event) {
@@ -30,6 +33,18 @@ class ContextMessageBus extends \Nette\Object implements IMessageBus {
 			throw new \Nette\InvalidStateException("One handler is allowed to send command, " . count($handlers) . " given!");
 		}
 		$handlers[0]->handle($command);
+	}
+
+	public function validate($command) {
+		$validators = $this->getValidators($command);
+		if (count($validators) < 1) {
+			throw new \Nette\InvalidStateException("No validator found!");
+		}
+		$result = new ValidationResultAggregator();
+		foreach($validators as $validator) {
+			$result->addValidationResult($validator->validate($command));
+		}
+		return $result;
 	}
 
 	/**
@@ -54,35 +69,31 @@ class ContextMessageBus extends \Nette\Object implements IMessageBus {
 		return $handlers;
 	}
 
-	protected function registerHandlers(\Nette\DI\Container $container, $tag) {
-		foreach ($container->findByTag($tag) as $commandHandlerName => $commands) {
-			$commandClassNames = $commands === true ? $this->getCommandClassNamesByParam($container->getService($commandHandlerName)) : (array) $commands;
-			foreach ($commandClassNames as $untrimedCommandClassName) {
-				$commandClassName = \Nette\Utils\Strings::lower(trim($untrimedCommandClassName, '\\'));
-				if(!class_exists($commandClassName)) {
-					throw new \Nette\InvalidStateException("Class $untrimedCommandClassName not exists!");
-				}
-				$class = \Nette\Reflection\ClassType::from($commandClassName);
-				if(!$class->isSubclassOf('Messaging\ICommand')) {
-					throw new \Nette\InvalidStateException("Class $untrimedCommandClassName does not implements ICommand interface!");
-				}
-				if (!isset($this->keys[$commandClassName])) {
-					$this->keys[$commandClassName] = array();
-				}
-				$this->keys[$commandClassName][] = $commandHandlerName;
+	/**
+	 * @param ICommand $command
+	 * @return IValidator[]
+	 * @throws \Nette\InvalidStateException
+	 */
+	protected function getValidators($message) {
+		$class = \Nette\Reflection\ClassType::from($message);
+		$validators = array();
+		do {
+			$commandType = \Nette\Utils\Strings::lower($class->getName());
+			$validators = array_merge($validators, isset($this->validators[$commandType]) ? $this->validators[$commandType] : array());
+		} while (($class = $class->getParentClass()) !== null);
+		foreach ($validators as $key => $validator) {
+			$validators[$key] = $this->container->getService($validator);
+			if (!($validators[$key] instanceof IValidator)) {
+				throw new \Nette\InvalidStateException('Validator must be instance of IValidator!');
 			}
 		}
+		return $validators;
 	}
 
-	protected function getCommandClassNamesByParam($handler) {
-		$class = \Nette\Reflection\ClassType::from($handler);
-		$method = $class->getMethod('handle');
-		$paramAnnotation = $method->getAnnotation('param');
-		if ($paramAnnotation === null) {
-			throw new \Nette\InvalidStateException("@param annotation on method {$class->getName()}::handle(\$message) must be specified!");
-		}
-		$paramAnnotation = \Nette\Utils\Strings::match($paramAnnotation, '/^([^ \t]*)/');
-		return explode('|', $paramAnnotation[0]);
+	protected function prepareRegistry(\Nette\DI\Container $container, $handlerTag, $validatorTag) {
+		$registry = new ContextMessageBusRegistry();
+		$this->keys = $registry->getServices($container, $handlerTag, 'handle');
+		$this->validators = $registry->getServices($container, $validatorTag, 'validate');
 	}
 
 }

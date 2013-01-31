@@ -5,11 +5,10 @@ namespace Messaging;
 /**
  * @author Daniel Robenek <daniel.robenek@me.com>
  */
-interface ICommandValidator {
+interface IValidator {
 
 	/**
-	 * @param object
-	 * @return ICommandValidationResult 
+	 * @return IValidationResult 
 	 */
 	function validate($message);
 }
