@@ -13,7 +13,7 @@ class ContextMessageBusRegistry extends \Nette\Object {
 			$commandClassNames = $commands === true ? $this->getCommandClassNamesByParam($container->getService($commandHandlerName), $method) : (array) $commands;
 			foreach ($commandClassNames as $untrimedCommandClassName) {
 				$commandClassName = \Nette\Utils\Strings::lower(trim($untrimedCommandClassName, '\\'));
-				if (!class_exists($commandClassName)) {
+				if (!class_exists($untrimedCommandClassName)) {
 					throw new \Nette\InvalidStateException("Class $untrimedCommandClassName not exists!");
 				}
 				$class = \Nette\Reflection\ClassType::from($commandClassName);
