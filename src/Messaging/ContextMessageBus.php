@@ -94,7 +94,7 @@ class ContextMessageBus extends \Nette\Object implements IMessageBus {
 			$handlers = array_merge($handlers, $this->getHandlersForClass($class->getName()));
 		} while (($class = $class->getParentClass()) !== null);
 
-		foreach ($handlers as $key => $handler) {
+		foreach (array_reverse($handlers) as $key => $handler) {
 			$handlers[$key] = $this->container->getService($handler);
 			if (!($handlers[$key] instanceof IHandler)) {
 				throw new \Nette\InvalidStateException('Handler must be instance of IHandler!');
@@ -114,7 +114,7 @@ class ContextMessageBus extends \Nette\Object implements IMessageBus {
 		do {
 			$validators = array_merge($validators, $this->getValidatorsForClass($class->getName()));
 		} while (($class = $class->getParentClass()) !== null);
-		foreach ($validators as $key => $validator) {
+		foreach (array_reverse($validators) as $key => $validator) {
 			$validators[$key] = $this->container->getService($validator);
 			if (!($validators[$key] instanceof IValidator)) {
 				throw new \Nette\InvalidStateException('Validator must be instance of IValidator!');
