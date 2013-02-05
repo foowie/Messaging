@@ -8,7 +8,8 @@ namespace Messaging;
 interface IValidator {
 
 	/**
-	 * @return IValidationResult 
+	 * @return IValidationResult|null
+	 * @throws ValidationException
 	 */
 	function validate($message);
 }
