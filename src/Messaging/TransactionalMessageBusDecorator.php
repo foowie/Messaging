@@ -79,4 +79,8 @@ class TransactionalMessageBusDecorator extends \Nette\Object implements IMessage
 		$this->depth--;
 	}
 
+	public function validate($command, $need = true) {
+		return $this->messageBus->validate($command, $need);
+	}
+
 }
